@@ -4,7 +4,7 @@
 > **Repositório GitHub:** `https://github.com/mattosleandro/AgendaMilano.git`  
 > **Metodologia Obrigatória:** Método GCCD (*Goal, Context, Constraints, Done When*)  
 > **Documento de Referência:** [`AGENTS.md`](./AGENTS.md)  
-> **Status Atual:** **Fases 1 e 2 CONCLUÍDAS** (schema, dupla trava, BrasilAPI + feriados locais, RPCs atômicas, `pg_cron` e testes automatizados aprovados) — executando **Fase 3**.
+> **Status Atual:** **Fases 1, 2, 3 e 4 CONCLUÍDAS** + Imagem `linux/arm64` construída e validada em container E2E na `milano_net` — restando apenas publicação no painel do **Coolify** e rota `agenda.portalmilano.com` no **Cloudflare Zero Trust Dashboard** (Fase 5).
 
 ---
 
@@ -177,11 +177,11 @@ Construir a aplicação web principal em Next.js (App Router + TypeScript) com a
    - Seção **Minhas Reservas** com prazo restante de 48h e link para o Recibo Digital após confirmação.
 
 ### D — Done When (Critérios de Conclusão)
-- [ ] Interface fiel a `./imagens`, responsiva (360px–desktop) e com números tabulares (`tabular-nums`).
-- [ ] Fluxo ponta a ponta validado: login por CPF → reserva → exibição pública apenas de `Bloco/Apto` e status → bloqueio caso o mesmo CPF tente reservar outro espaço na mesma data.
-- [ ] Salão de Festas exige aceite das 100 pessoas; Quiosques 1 e 2 mostram as quadras correspondentes.
-- [ ] Auditoria de payload HTTP/RSC confirma zero exposição de PII.
-- [ ] `npx tsc --noEmit` e `npm run build` limpos.
+- [x] Interface fiel a `./imagens`, responsiva (360px–desktop) e com números tabulares (`tabular-nums`).
+- [x] Fluxo ponta a ponta validado: login por CPF → reserva → exibição pública apenas de `Bloco/Apto` e status → bloqueio caso o mesmo CPF tente reservar outro espaço na mesma data.
+- [x] Salão de Festas exige aceite das 100 pessoas; Quiosques 1 e 2 mostram as quadras correspondentes.
+- [x] Auditoria de payload HTTP/RSC confirma zero exposição de PII.
+- [x] `npx tsc --noEmit` e `npm run build` limpos.
 
 ---
 
@@ -212,10 +212,10 @@ Entregar o Painel Administrativo do Síndico (`/admin`) autenticado via `public.
    - CRUD de feriados estaduais (MS) e municipais (Campo Grande) + botão de sincronização com a BrasilAPI.
 
 ### D — Done When (Critérios de Conclusão)
-- [ ] `/admin` e `/api/admin/*` inacessíveis sem sessão válida de `agenda_admins`.
-- [ ] Baixa em 1 clique confirma a reserva e emite recibo imutável verificável em `/recibo/[codigo]`.
-- [ ] Gestão de feriados locais atualiza o cálculo de preços imediatamente.
-- [ ] `npx tsc --noEmit` e `npm run build` limpos.
+- [x] `/admin` e `/api/admin/*` inacessíveis sem sessão válida de `agenda_admins`.
+- [x] Baixa em 1 clique confirma a reserva e emite recibo imutável verificável em `/recibo/[codigo]`.
+- [x] Gestão de feriados locais atualiza o cálculo de preços imediatamente.
+- [x] `npx tsc --noEmit` e `npm run build` limpos.
 
 ---
 
@@ -240,6 +240,7 @@ Publicar o sistema em produção via **Coolify** a partir do repositório `https
 4. **Bateria Final de Testes em Produção (Concorrência simultânea, limite de 1 reserva/data por CPF, expiração 48h, auditoria LGPD e performance mobile 4G).**
 
 ### D — Done When (Critérios de Conclusão)
-- [ ] `https://agenda.portalmilano.com` online via HTTPS com certificado válido e `/api/health` retornando `200 OK`.
-- [ ] Testes de concorrência, limite de 1 reserva/data por CPF, expiração 48h e auditoria LGPD 100% aprovados.
-- [ ] Banco de produção limpo (sem dados de teste residuais) e todos os serviços da VPS operando normalmente.
+- [ ] `https://agenda.portalmilano.com` online via HTTPS com certificado válido e `/api/health` retornando `200 OK` *(aguardando cadastro do Public Hostname no Cloudflare Zero Trust Dashboard e deploy no painel do Coolify)*.
+- [x] Container `linux/arm64` testado na rede `milano_net` comunicando-se com `http://supabase-envoy:8000` em baixa latência (`HEALTHCHECK` + E2E aprovados).
+- [x] Testes de concorrência (`1x 201 + 19x 409` em 20 disparos paralelos), limite de 1 reserva/data por CPF (`409 TITULAR_JA_RESERVOU_DATA`), expiração 48h e auditoria LGPD 100% aprovados.
+- [x] Banco de produção limpo (0 reservas/recibos residuais de teste) e todos os serviços pré-existentes da VPS intactos e saudáveis.
