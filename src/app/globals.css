@@ -1,0 +1,82 @@
+@import "tailwindcss";
+
+:root {
+  /* Marca Oficial (extraída de ./imagens) */
+  --milano-gold: #ccb285;
+  --milano-gold-50: #faf7f1;
+  --milano-gold-100: #f3ebdc;
+  --milano-gold-200: #e5d5b8;
+  --milano-gold-600: #9a7d4a;
+  --milano-gold-700: #7d6335;
+
+  /* Neutros e Superfícies (Light-First de alto contraste) */
+  --milano-ink: #0c0c0d;
+  --milano-ink-soft: #1e1e22;
+  --milano-bg: #f8f7f4;
+  --milano-surface: #ffffff;
+  --milano-border: #e7e2d8;
+  --milano-text: #18181b;
+  --milano-text-muted: #52525b;
+
+  /* Semântica da Agenda */
+  --status-free-bg: #ffffff;
+  --status-free-accent: #15803d;
+  --status-pending-bg: #fffbeb;
+  --status-pending-border: #f59e0b;
+  --status-pending-text: #92400e;
+  --status-confirmed-bg: #f0fdf4;
+  --status-confirmed-border: #15803d;
+  --status-confirmed-text: #166534;
+  --status-locked-bg: #f4f4f5;
+  --status-locked-text: #71717a;
+  --status-danger-bg: #fef2f2;
+  --status-danger-text: #b91c1c;
+}
+
+@theme inline {
+  --font-sans: var(--font-jakarta), "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-body: var(--font-inter), "Inter", system-ui, sans-serif;
+  --font-mono: var(--font-mono-code), "JetBrains Mono", ui-monospace, monospace;
+}
+
+html {
+  background-color: var(--milano-bg);
+  color: var(--milano-text);
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--milano-bg);
+  color: var(--milano-text);
+  min-height: 100dvh;
+}
+
+h1,
+h2,
+h3,
+h4,
+.font-display {
+  font-family: var(--font-sans);
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    color: #0c0c0d !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}

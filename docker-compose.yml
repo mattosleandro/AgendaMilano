@@ -1,0 +1,38 @@
+services:
+  agenda_milano:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_APP_URL: "${NEXT_PUBLIC_APP_URL:-https://agenda.portalmilano.com}"
+        NEXT_PUBLIC_SUPABASE_URL: "${NEXT_PUBLIC_SUPABASE_URL:-https://api.portalmilano.com}"
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: "${NEXT_PUBLIC_SUPABASE_ANON_KEY}"
+    restart: unless-stopped
+    expose:
+      - "3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOSTNAME=0.0.0.0
+      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-https://agenda.portalmilano.com}
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL:-https://api.portalmilano.com}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - SUPABASE_INTERNAL_URL=${SUPABASE_INTERNAL_URL:-http://supabase-envoy:8000}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - SESSION_SECRET=${SESSION_SECRET}
+      - APP_TIMEZONE=${APP_TIMEZONE:-America/Campo_Grande}
+    networks:
+      milano_net:
+        aliases:
+          - agenda-milano-web
+          - agenda_milano
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- --spider http://127.0.0.1:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+networks:
+  milano_net:
+    external: true
