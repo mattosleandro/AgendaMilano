@@ -19,7 +19,7 @@ import { formatCountdownParts } from "@/lib/agenda/opening-window";
 import {
   formatBrlFromCents,
   formatDateShortPtBr,
-  formatDateTimeCampoGrande,
+  formatDateTimeShortPtBr,
 } from "@/lib/agenda/pricing";
 import type {
   AdminReservaItem,
@@ -492,7 +492,7 @@ export function AdminReservationsClient({
                     <span>
                       Solicitada em:{" "}
                       <span className="tabular-nums">
-                        {formatDateTimeCampoGrande(r.created_at).slice(0, 16)}
+                        {formatDateTimeShortPtBr(r.created_at)}
                       </span>
                     </span>
                   </div>
@@ -513,7 +513,7 @@ export function AdminReservationsClient({
                       <CheckCircle2 className="h-3.5 w-3.5 text-[#15803D]" />
                       <span>
                         Pago em espécie em{" "}
-                        {formatDateTimeCampoGrande(r.confirmado_em).slice(0, 16)}
+                        {formatDateTimeShortPtBr(r.confirmado_em)}
                       </span>
                     </p>
                   )}

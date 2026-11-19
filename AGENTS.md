@@ -128,9 +128,10 @@ Auditado em modo somente leitura: **544 registros** (34 blocos × 16 apartamento
   $$\text{abertura}(D) = \text{Dia } 25 \text{ às } 20\text{h}00\text{ do mês anterior a } D \text{ (America/Campo\_Grande)}$$
   Uma data `D` só pode ser reservada se `D >= hoje_local` **e** `now() >= abertura(D)`.
 - **Antes das 20:00 do dia 25:** O mês seguinte permanece visualmente bloqueado para clique, exibindo um **contador regressivo sincronizado com o relógio do servidor** (`serverNow`).
-- **Cota Mensal vs. Limite por Data:**
-  - **Sem limite mensal de cota:** Um morador pode agendar múltiplas datas diferentes ao longo do mesmo mês, desde que disponíveis e com pagamentos cumpridos.
+- **Cota Mensal e Limite por Data:**
+  - **Limite de 1 reserva ativa por local no mês por CPF:** Cada CPF (`titular_cpf_hash`) pode ter **no máximo 1 reserva ativa (`PENDENTE_PAGAMENTO` ou `CONFIRMADO`) por espaço (`espaco_id`) dentro do mesmo mês** (`uq_agenda_reservas_titular_espaco_mes_ativa`). Caso a reserva seja cancelada ou expire após 48h, a cota mensal daquele espaço é liberada imediatamente.
   - **Limite estrito de 1 reserva por data por CPF:** Um mesmo CPF (`titular_cpf_hash`) pode ter **no máximo 1 reserva ativa (`PENDENTE_PAGAMENTO` ou `CONFIRMADO`) na mesma data (`data_reserva`)**, independentemente de possuir 1 ou 2 apartamentos.
+  - **Auto-cancelamento pelo morador:** O morador identificado pelo CPF pode excluir/cancelar suas próprias reservas com status `PENDENTE_PAGAMENTO` via `agenda_cancelar_reserva_morador`, liberando imediatamente a data e a cota mensal do local. Reservas já pagas (`CONFIRMADO`) exigem cancelamento pelo síndico.
 
 ### 4.3 Motor de Precificação Dinâmica e Feriados
 Valores armazenados em **centavos (`integer`)** para evitar erros de ponto flutuante:
@@ -142,8 +143,9 @@ Valores armazenados em **centavos (`integer`)** para evitar erros de ponto flutu
 | **Quiosque 2** (Quadra de areia) | R$ 70,00 (`7000`) | R$ 90,00 (`9000`) | R$ 90,00 (`9000`) |
 
 - **Véspera de feriado:** **NÃO** altera o valor — aplica-se rigorosamente a tarifa do dia da semana normal.
-- **Feriados Automáticos:** Integração server-side com a BrasilAPI (`https://brasilapi.com.br/api/feriados/v1/{ano}`), persistida em cache na tabela `agenda_feriados`.
-- **Feriados Locais:** O Painel do Síndico permite cadastrar, editar e ativar/desativar feriados estaduais (MS) e municipais (Campo Grande) na mesma tabela `agenda_feriados`.
+- **Feriados Automáticos e Locais (Dourados - MS / Mato Grosso do Sul):**
+  - Integração server-side com a BrasilAPI (`https://brasilapi.com.br/api/feriados/v1/{ano}` — cobertura oficial de feriados nacionais) complementada automaticamente pelos feriados fixos oficiais de **Mato Grosso do Sul** (`11/10` — Criação do Estado) e de **Dourados - MS** (`08/12` — Padroeira Imaculada Conceição e `20/12` — Aniversário de Dourados), persistidos em cache na tabela `agenda_feriados`.
+  - O Painel do Síndico permite cadastrar, editar e ativar/desativar feriados locais extras na mesma tabela `agenda_feriados`.
 - **Snapshot Financeiro:** O preço calculado no ato da reserva é gravado de forma imutável na reserva (`valor_centavos`, `regra_tarifa`), garantindo fidelidade do recibo mesmo após reajustes futuros.
 
 ### 4.4 Pagamento em Espécie, Expiração em 48h e Recibo Auditável
@@ -173,8 +175,8 @@ Valores armazenados em **centavos (`integer`)** para evitar erros de ponto flutu
    - Leituras públicas da agenda usam projeção dedicada (`agenda_reservas_publicas`) sem `JOIN` com `public.unidades_milano` e sem expor `titular_cpf_hash`.
 4. **Logs sem PII:** Nunca registrar CPF completo, nome, telefone ou e-mail em `console.log`, logs de erro ou telemetria.
 
-### 5.2 Prevenção de Reserva Dupla (*Race Conditions*), Limite de 1 Reserva/Data por CPF e Expiração Instantânea
-No dia 25 às 20:00, dezenas de moradores podem clicar simultaneamente na mesma data. O sistema **DEVE** garantir atomicidade no PostgreSQL com **duas travas físicas (Partial Unique Indexes)**:
+### 5.2 Prevenção de Reserva Dupla (*Race Conditions*), Limite de 1 Reserva/Local/Mês e Expiração Instantânea
+No dia 25 às 20:00, dezenas de moradores podem clicar simultaneamente na mesma data. O sistema **DEVE** garantir atomicidade no PostgreSQL com **três travas físicas (Partial Unique Indexes)**:
 
 1. **Trava física 1 — Proibição de Reserva Dupla no Mesmo Espaço e Data:**
    ```sql
@@ -186,6 +188,12 @@ No dia 25 às 20:00, dezenas de moradores podem clicar simultaneamente na mesma 
    ```sql
    CREATE UNIQUE INDEX uq_agenda_reservas_titular_data_ativa
      ON public.agenda_reservas (titular_cpf_hash, data_reserva)
+     WHERE status IN ('PENDENTE_PAGAMENTO', 'CONFIRMADO');
+   ```
+3. **Trava física 3 — Máximo de 1 Reserva Ativa por Local (Espaço) no Mês por CPF:**
+   ```sql
+   CREATE UNIQUE INDEX uq_agenda_reservas_titular_espaco_mes_ativa
+     ON public.agenda_reservas (titular_cpf_hash, espaco_id, public.agenda_ano_mes(data_reserva))
      WHERE status IN ('PENDENTE_PAGAMENTO', 'CONFIRMADO');
    ```
 3. **Transação atômica via RPC (`agenda_criar_reserva`):**

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  AlertCircle,
   Building2,
   CalendarDays,
   ChevronLeft,
@@ -10,6 +11,7 @@ import {
   MapPin,
   Shield,
   Sparkles,
+  Trash2,
   UserCheck,
   Users,
 } from "lucide-react";
@@ -21,7 +23,7 @@ import {
   formatBrlShort,
   formatDateLongPtBr,
   formatDateShortPtBr,
-  formatDateTimeCampoGrande,
+  formatDateTimeShortPtBr,
   formatMonthYearPtBr,
 } from "@/lib/agenda/pricing";
 import type {
@@ -79,6 +81,9 @@ export function AgendaApp({
     null
   );
   const [feedbackBanner, setFeedbackBanner] = useState<string | null>(null);
+  const [errorBanner, setErrorBanner] = useState<string | null>(null);
+  const [cancelingId, setCancelingId] = useState<string | null>(null);
+  const [confirmBannerCancel, setConfirmBannerCancel] = useState(false);
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -162,12 +167,45 @@ export function AgendaApp({
   const handleSelectFreeDate = (dateYmd: string) => {
     setSelectedOccupiedDate(null);
     setFeedbackBanner(null);
+    setErrorBanner(null);
     if (!morador) {
       setPendingDateAfterCpf(dateYmd);
       setCpfModalOpen(true);
       return;
     }
     setBookingDate(dateYmd);
+  };
+
+  const handleCancelOwnReservation = async (reserva: MinhaReserva) => {
+    setErrorBanner(null);
+    setFeedbackBanner(null);
+    setCancelingId(reserva.id);
+    try {
+      const res = await fetch(`/api/reservas/${reserva.id}/cancelar`, {
+        method: "POST",
+      });
+      const data = (await res.json()) as { ok?: boolean; message?: string };
+      if (!res.ok || !data.ok) {
+        setErrorBanner(
+          data.message || "Não foi possível excluir esta reserva."
+        );
+        return;
+      }
+      setSelectedOccupiedDate(null);
+      setConfirmBannerCancel(false);
+      setFeedbackBanner(
+        data.message ||
+          `Reserva de ${formatDateShortPtBr(reserva.data_reserva)} excluída. A data e sua cota mensal foram liberadas.`
+      );
+      await Promise.all([
+        fetchMonth(agenda.year, agenda.month),
+        fetchMinhasReservas(),
+      ]);
+    } catch {
+      setErrorBanner("Erro de conexão ao excluir reserva. Tente novamente.");
+    } finally {
+      setCancelingId(null);
+    }
   };
 
   const handleCpfSuccess = (loggedMorador: MoradorPublicSession) => {
@@ -235,6 +273,37 @@ export function AgendaApp({
     const prefix = `${agenda.year}-${String(agenda.month).padStart(2, "0")}-`;
     return agenda.feriados.filter((f) => f.ativo && f.data.startsWith(prefix));
   }, [agenda.feriados, agenda.year, agenda.month]);
+
+  const myActiveInSpaceMonth = useMemo(() => {
+    if (!morador || !espacoAtivo) return null;
+    const prefix = `${agenda.year}-${String(agenda.month).padStart(2, "0")}-`;
+    return (
+      minhasReservas.find((r) => {
+        if (r.espaco_id !== espacoAtivo.id) return false;
+        if (!r.data_reserva.startsWith(prefix)) return false;
+        if (r.status === "CONFIRMADO") return true;
+        if (
+          r.status === "PENDENTE_PAGAMENTO" &&
+          Date.parse(r.expires_at) > syncedNowMs
+        ) {
+          return true;
+        }
+        return false;
+      }) ?? null
+    );
+  }, [morador, espacoAtivo, minhasReservas, agenda.year, agenda.month, syncedNowMs]);
+
+  const inspectedOwnPending = useMemo(() => {
+    if (!inspectedOccupied || !morador) return null;
+    return (
+      minhasReservas.find(
+        (r) =>
+          r.id === inspectedOccupied.id &&
+          r.status === "PENDENTE_PAGAMENTO" &&
+          Date.parse(r.expires_at) > syncedNowMs
+      ) ?? null
+    );
+  }, [inspectedOccupied, morador, minhasReservas, syncedNowMs]);
 
   return (
     <div className="min-h-dvh flex flex-col bg-[#F8F7F4]">
@@ -313,6 +382,25 @@ export function AgendaApp({
           </div>
         )}
 
+        {errorBanner && (
+          <div
+            role="alert"
+            className="flex items-start justify-between gap-3 rounded-2xl border border-red-200 bg-[#FEF2F2] p-4 text-sm font-medium text-[#B91C1C]"
+          >
+            <div className="flex items-start gap-2">
+              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+              <span>{errorBanner}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setErrorBanner(null)}
+              className="text-xs font-bold underline shrink-0"
+            >
+              Fechar
+            </button>
+          </div>
+        )}
+
         {/* Seletor de Espaços (Segmented Control) */}
         <section aria-label="Escolha o espaço">
           <div className="grid grid-cols-3 gap-1.5 rounded-2xl border border-[#E7E2D8] bg-[#EFECE4] p-1.5">
@@ -372,7 +460,7 @@ export function AgendaApp({
                 <span>{espacoAtivo.descricao_localizacao}</span>
               </p>
               <p className="text-[11px] text-[#71717A]">
-                Pagamento em dinheiro ao síndico (48h). Véspera de feriado mantém o valor do dia da semana.
+                Pagamento em dinheiro ao síndico (48h) • Limite de 1 reserva por local no mês.
               </p>
             </div>
 
@@ -451,6 +539,61 @@ export function AgendaApp({
           />
         )}
 
+        {/* Aviso de cota mensal atingida para o espaço selecionado */}
+        {myActiveInSpaceMonth && espacoAtivo && (
+          <div className="rounded-2xl border border-[#E5D5B8] bg-[#FAF7F1] p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-0.5 text-xs sm:text-sm text-[#18181B]">
+              <p className="font-display font-bold text-[#0C0C0D]">
+                Limite mensal atingido para {espacoAtivo.nome}
+              </p>
+              <p className="text-xs text-[#52525B]">
+                Você já possui reserva ativa em{" "}
+                <strong className="text-[#0C0C0D] tabular-nums">
+                  {formatDateShortPtBr(myActiveInSpaceMonth.data_reserva)}
+                </strong>{" "}
+                (limite de 1 reserva por local no mês).
+                {myActiveInSpaceMonth.status === "PENDENTE_PAGAMENTO"
+                  ? " Para escolher outra data, exclua esta reserva pendente."
+                  : ""}
+              </p>
+            </div>
+
+            {myActiveInSpaceMonth.status === "PENDENTE_PAGAMENTO" &&
+              (confirmBannerCancel ? (
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    disabled={cancelingId === myActiveInSpaceMonth.id}
+                    onClick={() =>
+                      void handleCancelOwnReservation(myActiveInSpaceMonth)
+                    }
+                    className="inline-flex h-10 items-center rounded-xl bg-[#B91C1C] px-3.5 text-xs font-bold text-white hover:bg-red-800 disabled:opacity-50"
+                  >
+                    {cancelingId === myActiveInSpaceMonth.id
+                      ? "Excluindo..."
+                      : "Confirmar exclusão"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmBannerCancel(false)}
+                    className="inline-flex h-10 items-center rounded-xl border border-[#E7E2D8] bg-white px-3 text-xs font-semibold text-[#52525B]"
+                  >
+                    Não
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setConfirmBannerCancel(true)}
+                  className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-red-200 bg-[#FEF2F2] px-3.5 text-xs font-semibold text-[#B91C1C] hover:bg-red-100 shrink-0"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  <span>Excluir minha reserva</span>
+                </button>
+              ))}
+          </div>
+        )}
+
         {/* Grade do Calendário */}
         {espacoAtivo && (
           <CalendarGrid
@@ -491,11 +634,30 @@ export function AgendaApp({
                 <strong>
                   {inspectedOccupied.status_efetivo === "CONFIRMADO"
                     ? "Confirmado (pago em espécie)"
-                    : `Aguardando Pagamento (prazo até ${formatDateTimeCampoGrande(
+                    : `Aguardando Pagamento (prazo até ${formatDateTimeShortPtBr(
                         inspectedOccupied.expires_at
-                      ).slice(0, 16)})`}
+                      )})`}
                 </strong>
               </p>
+              {inspectedOwnPending && (
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    disabled={cancelingId === inspectedOwnPending.id}
+                    onClick={() =>
+                      void handleCancelOwnReservation(inspectedOwnPending)
+                    }
+                    className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-red-200 bg-[#FEF2F2] px-3.5 text-xs font-semibold text-[#B91C1C] hover:bg-red-100 disabled:opacity-50"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    <span>
+                      {cancelingId === inspectedOwnPending.id
+                        ? "Excluindo..."
+                        : "Excluir esta reserva"}
+                    </span>
+                  </button>
+                </div>
+              )}
             </div>
             <button
               type="button"
@@ -590,6 +752,8 @@ export function AgendaApp({
             reservas={minhasReservas}
             syncedNowMs={syncedNowMs}
             loading={loadingMinhas}
+            cancelingId={cancelingId}
+            onCancelReservation={handleCancelOwnReservation}
           />
         )}
       </main>
@@ -598,7 +762,7 @@ export function AgendaApp({
       <footer className="border-t border-[#E7E2D8] bg-white py-5 px-4 mt-6">
         <div className="mx-auto flex max-w-5xl flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#52525B]">
           <p className="text-center sm:text-left">
-            Milano Condomínio Club • Abertura mensal todo dia 25 às 20h00 (Campo Grande/MS) • LGPD: exibimos apenas Bloco e Apartamento.
+            Milano Condomínio Club • Abertura mensal todo dia 25 às 20:00 • LGPD: exibimos apenas Bloco e Apartamento.
           </p>
           <Link
             href="/admin"

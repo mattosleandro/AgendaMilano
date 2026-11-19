@@ -11,6 +11,37 @@ const SYNC_TTL_MS = 12 * 60 * 60 * 1000; // 12h
 const lastSyncByYear = new Map<number, number>();
 const inflightByYear = new Map<number, Promise<SyncYearResult>>();
 
+/**
+ * Feriados oficiais fixos do Estado de Mato Grosso do Sul (Lei Estadual nº 10/1979)
+ * e do Município de Dourados - MS (Lei Municipal nº 662/1967), complementando
+ * os feriados nacionais retornados pela BrasilAPI.
+ */
+function getOfficialDouradosMsHolidays(year: number) {
+  return [
+    {
+      data: `${year}-10-11`,
+      nome: "Criação do Estado de Mato Grosso do Sul",
+      tipo: "ESTADUAL" as const,
+      origem: "MANUAL" as const,
+      ativo: true,
+    },
+    {
+      data: `${year}-12-08`,
+      nome: "Nossa Senhora da Imaculada Conceição (Padroeira de Dourados)",
+      tipo: "MUNICIPAL" as const,
+      origem: "MANUAL" as const,
+      ativo: true,
+    },
+    {
+      data: `${year}-12-20`,
+      nome: "Aniversário de Dourados",
+      tipo: "MUNICIPAL" as const,
+      origem: "MANUAL" as const,
+      ativo: true,
+    },
+  ];
+}
+
 export interface SyncYearResult {
   year: number;
   ok: boolean;
@@ -111,10 +142,18 @@ export async function syncYearFromBrasilApi(
           ativo: true,
         }));
 
-      if (toUpsert.length > 0) {
+      // Complementa automaticamente feriados oficiais de Dourados - MS e Mato Grosso do Sul
+      // quando ainda não cadastrados manualmente para aquele ano
+      const localDouradosMs = getOfficialDouradosMsHolidays(year).filter(
+        (loc) => !manualDates.has(loc.data)
+      );
+
+      const combinedUpsert = [...toUpsert, ...localDouradosMs];
+
+      if (combinedUpsert.length > 0) {
         const { error: upsertErr } = await supabase
           .from("agenda_feriados")
-          .upsert(toUpsert, { onConflict: "data" });
+          .upsert(combinedUpsert, { onConflict: "data" });
 
         if (upsertErr) {
           throw new Error(upsertErr.message);
@@ -126,8 +165,8 @@ export async function syncYearFromBrasilApi(
         year,
         ok: true,
         fetched: items.length,
-        upserted: toUpsert.length,
-        skippedManual: items.length - toUpsert.length,
+        upserted: combinedUpsert.length,
+        skippedManual: manualDates.size,
       };
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Erro ao sincronizar BrasilAPI";

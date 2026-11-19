@@ -12,6 +12,7 @@ import {
 import {
   calculateSpacePrice,
   formatBrlFromCents,
+  formatDateTimeShortPtBr,
   getIsoDayOfWeek,
 } from "../src/lib/agenda/pricing.ts";
 import type { FeriadoPublico } from "../src/lib/agenda/types.ts";
@@ -90,10 +91,14 @@ describe("Motor de Precificação Dinâmica e Feriados", () => {
     assert.equal(calculateSpacePrice(QUIOSQUE, "2026-08-26", holidayMap).valorCentavos, 9000);
   });
 
-  it("calcula dia da semana ISO e formata moeda BRL corretamente", () => {
+  it("calcula dia da semana ISO, formata moeda BRL e hora 20:00 sem truncamento", () => {
     assert.equal(getIsoDayOfWeek("2026-11-18"), 3); // Quarta
     assert.equal(getIsoDayOfWeek("2026-11-22"), 7); // Domingo
     assert.match(formatBrlFromCents(22000), /R\$\s?220,00/);
+    assert.equal(
+      formatDateTimeShortPtBr("2026-11-26T00:00:00.000Z"),
+      "25/11/2026 às 20:00"
+    );
   });
 });
 

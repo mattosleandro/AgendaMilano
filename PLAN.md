@@ -244,3 +244,12 @@ Publicar o sistema em produção via **Coolify** a partir do repositório `https
 - [x] Container `linux/arm64` em produção na rede `milano_net` com alias `agenda-milano-web` comunicando-se com `http://supabase-envoy:8000` em baixa latência (`healthy`).
 - [x] Testes de concorrência em produção HTTPS (`1x 201 + 19x 409` em 20 disparos paralelos), limite de 1 reserva/data por CPF (`409 TITULAR_JA_RESERVOU_DATA`), expiração 48h (`pg_cron` com 982 execuções `succeeded`) e auditoria LGPD 100% aprovados.
 - [x] Banco de produção limpo (`0` reservas/recibos residuais de teste) e todos os serviços pré-existentes da VPS intactos e saudáveis.
+
+---
+
+## Ajustes Pós-Produção Aplicados (Migração `003`)
+
+- [x] **Limite de 1 reserva ativa por local (espaço) no mês por CPF:** trava física `uq_agenda_reservas_titular_espaco_mes_ativa` + validação atômica e *lazy expiration* mensal em `agenda_criar_reserva`.
+- [x] **Exclusão/Cancelamento pelo próprio morador:** RPC `agenda_cancelar_reserva_morador` + rota `POST/DELETE /api/reservas/[id]/cancelar` + botões em **Minhas Reservas**, aviso de limite mensal e detalhe de dia ocupado no calendário.
+- [x] **Feriados oficiais de Dourados - MS e Mato Grosso do Sul:** substituição dos feriados municipais antigos de Campo Grande pelos oficiais de Dourados (`08/12` Imaculada Conceição e `20/12` Aniversário de Dourados) + `11/10` Criação de MS, sincronizados automaticamente junto à BrasilAPI.
+- [x] **Ajustes de textos e formatação de hora:** remoção da frase sobre véspera de feriado na interface, remoção do texto `(horário de Campo Grande)` e correção de `20:0` para `20:00` via `formatDateTimeShortPtBr`.

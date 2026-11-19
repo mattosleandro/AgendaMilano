@@ -63,14 +63,40 @@ for (const year of years) {
       ativo: true,
     }));
 
-  if (rows.length > 0) {
+  const localRows = [
+    {
+      data: `${year}-10-11`,
+      nome: "Criação do Estado de Mato Grosso do Sul",
+      tipo: "ESTADUAL",
+      origem: "MANUAL",
+      ativo: true,
+    },
+    {
+      data: `${year}-12-08`,
+      nome: "Nossa Senhora da Imaculada Conceição (Padroeira de Dourados)",
+      tipo: "MUNICIPAL",
+      origem: "MANUAL",
+      ativo: true,
+    },
+    {
+      data: `${year}-12-20`,
+      nome: "Aniversário de Dourados",
+      tipo: "MUNICIPAL",
+      origem: "MANUAL",
+      ativo: true,
+    },
+  ].filter((loc) => !manualSet.has(loc.data));
+
+  const combined = [...rows, ...localRows];
+
+  if (combined.length > 0) {
     const { error: upErr } = await supabase
       .from("agenda_feriados")
-      .upsert(rows, { onConflict: "data" });
+      .upsert(combined, { onConflict: "data" });
     if (upErr) throw new Error(upErr.message);
   }
 
   console.log(
-    `[sync-holidays] ${year}: obtidos=${list.length}, gravados=${rows.length}, manuais_preservados=${list.length - rows.length}`
+    `[sync-holidays] ${year}: brasilapi=${list.length}, gravados=${combined.length}, manuais_preservados=${manualSet.size}`
   );
 }

@@ -4,15 +4,16 @@ import {
   CheckCircle2,
   Clock,
   FileText,
+  Trash2,
   XCircle,
 } from "lucide-react";
 import Link from "next/link";
-import React from "react";
+import React, { useState } from "react";
 import { formatCountdownParts } from "@/lib/agenda/opening-window";
 import {
   formatBrlFromCents,
   formatDateShortPtBr,
-  formatDateTimeCampoGrande,
+  formatDateTimeShortPtBr,
 } from "@/lib/agenda/pricing";
 import type { MinhaReserva } from "@/lib/agenda/types";
 
@@ -20,6 +21,8 @@ interface MyReservationsPanelProps {
   reservas: MinhaReserva[];
   syncedNowMs: number;
   loading: boolean;
+  cancelingId: string | null;
+  onCancelReservation: (reserva: MinhaReserva) => Promise<void>;
 }
 
 function StatusBadge({ status }: { status: MinhaReserva["status"] }) {
@@ -59,7 +62,11 @@ export function MyReservationsPanel({
   reservas,
   syncedNowMs,
   loading,
+  cancelingId,
+  onCancelReservation,
 }: MyReservationsPanelProps) {
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+
   return (
     <section
       aria-labelledby="minhas-reservas-heading"
@@ -74,7 +81,7 @@ export function MyReservationsPanel({
             Minhas Reservas
           </h2>
           <p className="text-xs text-[#52525B]">
-            Acompanhe prazos de pagamento em espécie e emita seus recibos
+            Acompanhe prazos, exclua reservas pendentes ou acesse seus recibos
           </p>
         </div>
       </div>
@@ -100,6 +107,8 @@ export function MyReservationsPanel({
                 ? "EXPIRADO"
                 : r.status;
             const c = formatCountdownParts(remainingMs);
+            const isBusy = cancelingId === r.id;
+            const isConfirming = confirmingId === r.id;
 
             return (
               <div
@@ -128,7 +137,12 @@ export function MyReservationsPanel({
                       Expira em {c.days * 24 + c.hours}h{" "}
                       {String(c.minutes).padStart(2, "0")}m{" "}
                       {String(c.seconds).padStart(2, "0")}s (limite:{" "}
-                      {formatDateTimeCampoGrande(r.expires_at).slice(0, 16)})
+                      {formatDateTimeShortPtBr(r.expires_at)})
+                    </p>
+                  )}
+                  {effStatus === "CONFIRMADO" && (
+                    <p className="text-[11px] text-[#52525B]">
+                      Pagamento confirmado. Para cancelar, solicite diretamente ao síndico.
                     </p>
                   )}
                   {effStatus === "CANCELADO" && r.motivo_cancelamento && (
@@ -138,15 +152,52 @@ export function MyReservationsPanel({
                   )}
                 </div>
 
-                {r.codigo_recibo && (
-                  <Link
-                    href={`/recibo/${r.codigo_recibo}`}
-                    className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#0C0C0D] px-4 text-xs font-semibold text-white hover:bg-[#1E1E22] shrink-0 transition-colors"
-                  >
-                    <FileText className="h-4 w-4 text-[#CCB285]" />
-                    <span>Ver Recibo ({r.codigo_recibo})</span>
-                  </Link>
-                )}
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                  {effStatus === "PENDENTE_PAGAMENTO" &&
+                    (isConfirming ? (
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          disabled={isBusy}
+                          onClick={async () => {
+                            await onCancelReservation(r);
+                            setConfirmingId(null);
+                          }}
+                          className="inline-flex h-10 items-center justify-center rounded-xl bg-[#B91C1C] px-3.5 text-xs font-bold text-white hover:bg-red-800 disabled:opacity-50"
+                        >
+                          {isBusy ? "Excluindo..." : "Confirmar exclusão"}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isBusy}
+                          onClick={() => setConfirmingId(null)}
+                          className="inline-flex h-10 items-center justify-center rounded-xl border border-[#E7E2D8] bg-white px-3 text-xs font-semibold text-[#52525B]"
+                        >
+                          Não
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={isBusy}
+                        onClick={() => setConfirmingId(r.id)}
+                        className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl border border-red-200 bg-[#FEF2F2] px-3.5 text-xs font-semibold text-[#B91C1C] hover:bg-red-100 disabled:opacity-50 transition-colors"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        <span>Excluir Reserva</span>
+                      </button>
+                    ))}
+
+                  {r.codigo_recibo && (
+                    <Link
+                      href={`/recibo/${r.codigo_recibo}`}
+                      className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#0C0C0D] px-4 text-xs font-semibold text-white hover:bg-[#1E1E22] shrink-0 transition-colors"
+                    >
+                      <FileText className="h-4 w-4 text-[#CCB285]" />
+                      <span>Ver Recibo ({r.codigo_recibo})</span>
+                    </Link>
+                  )}
+                </div>
               </div>
             );
           })}

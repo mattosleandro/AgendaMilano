@@ -185,7 +185,7 @@ export function ReceiptDocument({ data }: ReceiptDocumentProps) {
 
               <div>
                 <dt className="text-xs text-[#52525B]">
-                  Data/Hora da Confirmação (MS)
+                  Data/Hora da Confirmação
                 </dt>
                 <dd className="mt-0.5 text-sm font-semibold text-[#18181B] tabular-nums">
                   {formatDateTimeCampoGrande(recibo.emitido_em)}

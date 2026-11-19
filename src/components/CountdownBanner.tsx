@@ -4,7 +4,7 @@ import { Clock, Lock } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { formatCountdownParts } from "@/lib/agenda/opening-window";
 import {
-  formatDateTimeCampoGrande,
+  formatDateTimeShortPtBr,
   formatMonthYearPtBr,
 } from "@/lib/agenda/pricing";
 
@@ -47,7 +47,7 @@ export function CountdownBanner({
 
   const parts = formatCountdownParts(remainingMs);
   const monthLabel = formatMonthYearPtBr(year, month);
-  const openingText = formatDateTimeCampoGrande(openingAt).slice(0, 16);
+  const openingText = formatDateTimeShortPtBr(openingAt);
 
   return (
     <div
@@ -71,8 +71,7 @@ export function CountdownBanner({
               <Clock className="h-3.5 w-3.5 text-[#CCB285] shrink-0" />
               <span>
                 Abertura automática em{" "}
-                <strong className="text-white tabular-nums">{openingText}</strong>{" "}
-                (horário de Campo Grande)
+                <strong className="text-white tabular-nums">{openingText}</strong>
               </span>
             </p>
           </div>

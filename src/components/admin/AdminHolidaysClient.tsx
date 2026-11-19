@@ -74,7 +74,7 @@ export function AdminHolidaysClient({
         return;
       }
       setFeedback(
-        `BrasilAPI sincronizada para ${year}: ${data.upserted} feriados atualizados (${data.skippedManual} locais preservados).`
+        `Feriados de ${year} sincronizados (BrasilAPI + oficiais de Dourados/MS): ${data.upserted} atualizados.`
       );
       await loadYear(year);
     } catch {
@@ -163,7 +163,7 @@ export function AdminHolidaysClient({
           <span>
             {syncing
               ? "Sincronizando..."
-              : `Sincronizar Feriados Nacionais ${year} (BrasilAPI)`}
+              : `Sincronizar Feriados ${year} (BrasilAPI + Dourados/MS)`}
           </span>
         </button>
       </div>
@@ -213,7 +213,7 @@ export function AdminHolidaysClient({
               id="f-nome"
               type="text"
               required
-              placeholder="Ex: Aniversário de Campo Grande"
+              placeholder="Ex: Aniversário de Dourados"
               value={newNome}
               onChange={(e) => setNewNome(e.target.value)}
               className="w-full h-11 rounded-xl border border-[#D4CFC4] px-3 text-sm"
@@ -230,8 +230,8 @@ export function AdminHolidaysClient({
               onChange={(e) => setNewTipo(e.target.value as FeriadoTipo)}
               className="w-full h-11 rounded-xl border border-[#D4CFC4] bg-white px-3 text-sm"
             >
-              <option value="MUNICIPAL">Municipal (Campo Grande)</option>
-              <option value="ESTADUAL">Estadual (MS)</option>
+              <option value="MUNICIPAL">Municipal (Dourados - MS)</option>
+              <option value="ESTADUAL">Estadual (Mato Grosso do Sul)</option>
               <option value="CONDOMINIO">Condomínio</option>
               <option value="NACIONAL">Nacional</option>
             </select>

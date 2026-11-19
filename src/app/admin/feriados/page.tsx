@@ -26,10 +26,10 @@ export default async function AdminFeriadosPage() {
       <main className="mx-auto max-w-6xl px-3 sm:px-4 py-6 space-y-4">
         <div>
           <h1 className="font-display text-xl sm:text-2xl font-bold text-[#0C0C0D]">
-            Feriados Nacionais e Locais (MS / Campo Grande)
+            Feriados Nacionais, Estaduais (MS) e Municipais (Dourados - MS)
           </h1>
           <p className="text-xs sm:text-sm text-[#52525B]">
-            Feriados ativos aplicam automaticamente a tarifa de feriado (R$ 220 Salão / R$ 90 Quiosques). Vésperas mantêm o preço do dia da semana.
+            Feriados ativos aplicam automaticamente a tarifa de feriado (R$ 220 Salão / R$ 90 Quiosques).
           </p>
         </div>
 

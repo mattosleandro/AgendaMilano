@@ -122,8 +122,27 @@ export function formatMonthYearPtBr(year: number, month: number): string {
   return `${name.charAt(0).toUpperCase()}${name.slice(1)} de ${year}`;
 }
 
+export function formatDateTimeShortPtBr(isoStr: string): string {
+  const parts = new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "America/Campo_Grande",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date(isoStr));
+
+  const map: Record<string, string> = {};
+  for (const p of parts) {
+    if (p.type !== "literal") map[p.type] = p.value;
+  }
+
+  return `${map.day}/${map.month}/${map.year} às ${map.hour}:${map.minute}`;
+}
+
 export function formatDateTimeCampoGrande(isoStr: string): string {
-  return new Intl.DateTimeFormat("pt-BR", {
+  const parts = new Intl.DateTimeFormat("pt-BR", {
     timeZone: "America/Campo_Grande",
     day: "2-digit",
     month: "2-digit",
@@ -132,7 +151,14 @@ export function formatDateTimeCampoGrande(isoStr: string): string {
     minute: "2-digit",
     second: "2-digit",
     hourCycle: "h23",
-  }).format(new Date(isoStr));
+  }).formatToParts(new Date(isoStr));
+
+  const map: Record<string, string> = {};
+  for (const p of parts) {
+    if (p.type !== "literal") map[p.type] = p.value;
+  }
+
+  return `${map.day}/${map.month}/${map.year} às ${map.hour}:${map.minute}:${map.second}`;
 }
 
 export function getRegraTarifaLabel(regra: string): string {
