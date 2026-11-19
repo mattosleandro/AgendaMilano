@@ -4,7 +4,7 @@
 > **Repositório GitHub:** `https://github.com/mattosleandro/AgendaMilano.git`  
 > **Metodologia Obrigatória:** Método GCCD (*Goal, Context, Constraints, Done When*)  
 > **Documento de Referência:** [`AGENTS.md`](./AGENTS.md)  
-> **Status Atual:** **Fases 1, 2, 3 e 4 CONCLUÍDAS** + Imagem `linux/arm64` construída e validada em container E2E na `milano_net` — restando apenas publicação no painel do **Coolify** e rota `agenda.portalmilano.com` no **Cloudflare Zero Trust Dashboard** (Fase 5).
+> **Status Atual:** **TODAS AS FASES (1 a 5) CONCLUÍDAS E EM PRODUÇÃO** em `https://agenda.portalmilano.com` (Coolify `3nryj2sdkmtwmnsatg8jbzja` + Cloudflare Tunnel `cloudflared_milano` + `supabase-db`).
 
 ---
 
@@ -240,7 +240,7 @@ Publicar o sistema em produção via **Coolify** a partir do repositório `https
 4. **Bateria Final de Testes em Produção (Concorrência simultânea, limite de 1 reserva/data por CPF, expiração 48h, auditoria LGPD e performance mobile 4G).**
 
 ### D — Done When (Critérios de Conclusão)
-- [ ] `https://agenda.portalmilano.com` online via HTTPS com certificado válido e `/api/health` retornando `200 OK` *(aguardando cadastro do Public Hostname no Cloudflare Zero Trust Dashboard e deploy no painel do Coolify)*.
-- [x] Container `linux/arm64` testado na rede `milano_net` comunicando-se com `http://supabase-envoy:8000` em baixa latência (`HEALTHCHECK` + E2E aprovados).
-- [x] Testes de concorrência (`1x 201 + 19x 409` em 20 disparos paralelos), limite de 1 reserva/data por CPF (`409 TITULAR_JA_RESERVOU_DATA`), expiração 48h e auditoria LGPD 100% aprovados.
-- [x] Banco de produção limpo (0 reservas/recibos residuais de teste) e todos os serviços pré-existentes da VPS intactos e saudáveis.
+- [x] `https://agenda.portalmilano.com` online via HTTPS com certificado válido, `/api/health` retornando `200 OK` e aplicação **Agenda Milano** (`3nryj2sdkmtwmnsatg8jbzja`) saudável no Coolify.
+- [x] Container `linux/arm64` em produção na rede `milano_net` com alias `agenda-milano-web` comunicando-se com `http://supabase-envoy:8000` em baixa latência (`healthy`).
+- [x] Testes de concorrência em produção HTTPS (`1x 201 + 19x 409` em 20 disparos paralelos), limite de 1 reserva/data por CPF (`409 TITULAR_JA_RESERVOU_DATA`), expiração 48h (`pg_cron` com 982 execuções `succeeded`) e auditoria LGPD 100% aprovados.
+- [x] Banco de produção limpo (`0` reservas/recibos residuais de teste) e todos os serviços pré-existentes da VPS intactos e saudáveis.
